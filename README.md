@@ -186,6 +186,26 @@ The Inspire API requires a minimum of 1 second between requests. This integratio
 - Inspire API documentation: https://www.inspirehomeautomation.co.uk/client/api1_4/api.php?action=help
 - Inspire Support: https://www.inspirehomeautomation.co.uk/support
 
+## Publishing for HACS (Maintainers)
+
+To keep the integration usable with HACS, use semantic versioning and tags.
+
+### Verifying HACS compatibility
+
+- Ensure `hacs.json` exists in the repository root (name, `render_readme`, `homeassistant`).
+- Ensure `custom_components/inspire_home_automation/manifest.json` has: `domain`, `name`, `version`, `documentation`, `issue_tracker`, `codeowners`.
+- After adding a tag, HACS will show the version (e.g. v0.1.0) instead of a commit hash.
+
+### Releasing a new version
+
+1. Bump the version in `custom_components/inspire_home_automation/manifest.json` (e.g. to `0.2.0`).
+2. Create and push an annotated tag:
+   ```bash
+   git tag -a v0.2.0 -m "Release version 0.2.0"
+   git push origin v0.2.0
+   ```
+3. Optionally create a GitHub Release: Repo → Releases → "Draft a new release", choose the tag, add release notes. HACS will show the latest releases when users install or upgrade.
+
 ## License
 
 This integration is provided as-is without warranty. Use at your own risk.
