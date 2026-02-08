@@ -1,0 +1,39 @@
+---
+description: Inspire API client standards and XML-based API usage
+alwaysApply: true
+---
+
+# Inspire API Client Standards
+
+## API workflow
+1. **Connect** (POST, HTTPS only): `action=connect`, `apikey`, `username`, `password` → returns session `<key>`.
+2. Use that key for all subsequent requests: `key=<session_key>` with `apikey` and `device_id` where required.
+3. Session keys can expire; reconnect and retry on invalid-key responses.
+
+## Endpoints
+- **GET**: `get_devices`, `get_device_information`, `check_connection`, `get_summary`, `check_confirms`, `get_log`.
+- **POST**: `connect`, `send_message` (set_function, set_set_point, set_time, set_program_time, set_scheduled_start, cancel_scheduled_start, set_pgmtype, set_advance).
+
+Base URL: `https://www.inspirehomeautomation.co.uk/client/api1_2/api.php`
+
+## XML parsing
+- All responses are XML. Prefer `defusedxml` for safe parsing; fallback to `xml.etree.ElementTree`.
+- Parse status from `<status><code>`, `<status><message>`; parse data from elements like `<key>`, `<devices>`, `<Device_Information>`.
+
+## Authentication and storage
+- Store only API key, username, and password in config entry (or credential storage). Session key is ephemeral; obtain in API client and refresh when invalid (e.g. status code 3).
+
+## Status codes (handle explicitly)
+- 1 Invalid Login, 2 User not validated, 3 Invalid Key → re-auth or reconnect.
+- 4 Gateway not connected, 5 Device not connected → treat as unavailable, retry later.
+- 6 Invalid Device ID, 8 Specify device id → configuration error.
+- 11 Allow 1 second between requests → implement rate limiting (min 1s between requests).
+- 14 Message Sent; 13 Unit Active (check_connection).
+
+## Constraints
+- **Temperature**: 10–30 °C, 0.5 °C steps (e.g. 19.5).
+- **set_function value**: 1=Off, 2=Program 1, 3=Program 2, 4=Both, 5=On, 6=Boost.
+- Messages are queued; thermostat may acknowledge up to ~30s later. Use `check_confirms` if you need to verify delivery; avoid duplicate sends.
+
+## Security
+- Use HTTPS only. Do not log credentials or session keys.

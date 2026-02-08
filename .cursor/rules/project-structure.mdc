@@ -1,0 +1,31 @@
+---
+description: Project structure and file organization for Inspire HACS component
+alwaysApply: true
+---
+
+# Project Structure
+
+## HACS custom component layout
+Place the integration under `custom_components/inspire/` (or mirror this layout in the repo):
+
+- **`__init__.py`** — Component setup, `async_setup_entry`, forward platform setups, store coordinator ref on hass.data.
+- **`manifest.json`** — Domain, name, version (required for HACS), documentation, issue_tracker, codeowners, iot_class, requirements.
+- **`config_flow.py`** — ConfigFlow and OptionsFlow; collect and validate API key, username, password.
+- **`const.py`** — DOMAIN, API base URL, scan intervals, default values; no magic strings elsewhere.
+- **`climate.py`** — Climate platform; one entity per thermostat, uses coordinator data.
+- **`sensor.py`** — Optional sensor platform (temperature, battery, status).
+- **`coordinator.py`** — DataUpdateCoordinator; calls API to fetch device information for all devices.
+- **`api.py`** — Inspire API client only (connect, get_devices, get_device_information, send_message, etc.). No HA imports in this file.
+- **`strings.json`** — Config flow translations (en and optionally others).
+
+## Principles
+- **Separation**: API client (`api.py`) has no Home Assistant imports; coordinator and platforms use the client.
+- **Constants**: All URLs, intervals, and domain names in `const.py`.
+- **Typing**: Use type hints on public functions and methods.
+- **Docstrings**: Document public API of the client and coordinator.
+
+## Future tests
+When adding tests, use this layout:
+
+- `tests/__init__.py`, `tests/conftest.py` (pytest fixtures, hass fixture).
+- `tests/test_config_flow.py`, `tests/test_climate.py`, `tests/test_api.py`.

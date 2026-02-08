@@ -1,0 +1,44 @@
+---
+description: Home Assistant integration patterns for Inspire thermostat component
+alwaysApply: true
+---
+
+# Home Assistant Integration Patterns
+
+## Async-first architecture
+- Use `async def` and `await` for all I/O. HA expects async setup and entity methods.
+- Entry point: `async_setup(hass, config)` and `async_setup_entry(hass, config_entry)`.
+
+```python
+# Good: async setup
+async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+    coordinator = InspireDataUpdateCoordinator(hass, api_client)
+    await coordinator.async_config_entry_first_refresh()
+    await hass.config_entries.async_forward_entry_setups(config_entry, [CLIMATE_DOMAIN])
+    return True
+```
+
+## Config flow
+- Use config flow for setup (no YAML). Collect API key, username, password; validate with a connect call.
+- Raise `ConfigEntryAuthFailed` on invalid credentials; raise `ConfigEntryNotReady` on transient failures (e.g. gateway offline).
+
+## Entity platforms
+- **Climate**: One climate entity per thermostat (set temp, mode, HVAC mode mapping from Inspire functions).
+- **Sensors** (optional): Current temp, battery, connection status.
+- Derive state from coordinator data; do not call `hass.states.async_set` directly.
+
+## Manifest (manifest.json)
+- Required: `domain`, `name`, `version` (required for HACS), `documentation`, `issue_tracker`, `codeowners`, `iot_class` (e.g. `cloud_polling`).
+- Include `requirements` if using third-party libs.
+
+## Data coordinator
+- Use `DataUpdateCoordinator` to poll Inspire API (e.g. every 30–60 seconds).
+- Fetch device list once at setup; use `get_device_information` per device in coordinator.
+- On coordinator failure, use retry/backoff; re-raise to let HA handle updates.
+
+## Device registry
+- Set `DeviceInfo` with `identifiers={(DOMAIN, device_id)}`, `name`, `manufacturer` ("Inspire Home Automation"), `model` where known.
+
+## Error handling
+- Invalid/expired session: `ConfigEntryAuthFailed` so user can re-auth.
+- Gateway/device offline or timeout: `ConfigEntryNotReady` on first setup; coordinator should log and retry on refresh.
