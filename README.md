@@ -47,7 +47,7 @@ This is the **password** you use to log into the Inspire web portal.
 2. Click on "Integrations"
 3. Click the three dots in the top right corner
 4. Select "Custom repositories"
-5. Add this repository URL: `https://github.com/paul-ridgway/ha-inspire-integration`
+5. Add this repository URL: `https://github.com/Smart-Home-Shop/ha-inspire-integration`
 6. Select category: "Integration"
 7. Click "Add"
 8. Find "Inspire Home Automation" in the integration list and click "Download"
@@ -55,7 +55,7 @@ This is the **password** you use to log into the Inspire web portal.
 
 ### Manual Installation
 
-1. Copy the `custom_components/inspire` folder to your Home Assistant `config/custom_components/` directory
+1. Copy the `custom_components/inspire_home_automation` folder to your Home Assistant `config/custom_components/` directory
 2. Restart Home Assistant
 
 ## Configuration
@@ -85,9 +85,9 @@ This integration supports the following Inspire Home Automation devices:
 For each thermostat/device, the integration creates:
 
 - **Climate Entity**: Control temperature, HVAC mode, and preset (program1, program2, both, boost). Also shows current temperature (no separate temperature sensor for thermostats to avoid duplicates.)
-  - `climate.inspire_<device_name>`
+  - `climate.inspire_home_automation_<device_name>`
 - **Battery Sensor**: Battery status (OK/Low or voltage), when reported by the device
-  - `sensor.inspire_<device_name>_battery`
+  - `sensor.inspire_home_automation_<device_name>_battery`
 
 At the account level:
 
@@ -97,17 +97,17 @@ At the account level:
 
 The integration exposes services for scheduling and program configuration. See **[SERVICES.md](SERVICES.md)** for full descriptions and examples:
 
-- `inspire.schedule_heating_start` – Schedule heating to start at a given time
-- `inspire.cancel_scheduled_start` – Cancel a scheduled start
-- `inspire.advance_program` – Advance to the next program period
-- `inspire.sync_device_time` – Sync the device clock
-- `inspire.set_program_schedule` – Configure a program slot (program, day, period, time, temperature)
-- `inspire.set_program_type` – Set program type on the device
+- `inspire_home_automation.schedule_heating_start` – Schedule heating to start at a given time
+- `inspire_home_automation.cancel_scheduled_start` – Cancel a scheduled start
+- `inspire_home_automation.advance_program` – Advance to the next program period
+- `inspire_home_automation.sync_device_time` – Sync the device clock
+- `inspire_home_automation.set_program_schedule` – Configure a program slot (program, day, period, time, temperature)
+- `inspire_home_automation.set_program_type` – Set program type on the device
 
 Example (Developer Tools → Services):
 
 ```yaml
-service: inspire.advance_program
+service: inspire_home_automation.advance_program
 data:
   device_id: "YOUR_DEVICE_ID"
 ```
@@ -160,7 +160,7 @@ To see detailed logs, add this to your `configuration.yaml`:
 logger:
   default: info
   logs:
-    custom_components.inspire: debug
+    custom_components.inspire_home_automation: debug
 ```
 
 Then restart Home Assistant and check the logs at **Settings** → **System** → **Logs**.
@@ -182,7 +182,7 @@ The Inspire API requires a minimum of 1 second between requests. This integratio
 
 ## Support
 
-- Report issues: https://github.com/paul-ridgway/ha-inspire-integration/issues
+- Report issues: https://github.com/Smart-Home-Shop/ha-inspire-integration/issues
 - Inspire API documentation: https://www.inspirehomeautomation.co.uk/client/api1_4/api.php?action=help
 - Inspire Support: https://www.inspirehomeautomation.co.uk/support
 

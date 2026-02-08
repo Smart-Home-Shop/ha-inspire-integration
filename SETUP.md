@@ -62,14 +62,14 @@ If the test succeeds, you'll see a list of all your devices and their current st
 
 After setup, for each thermostat you'll get:
 
-- **Climate Entity**: `climate.inspire_<device_name>`
+- **Climate Entity**: `climate.inspire_home_automation_<device_name>`
   - Control temperature and heating mode
   - View current temperature
   
-- **Temperature Sensor**: `sensor.inspire_<device_name>_temperature`
+- **Temperature Sensor**: `sensor.inspire_home_automation_<device_name>_temperature`
   - Current room temperature
   
-- **Connection Sensor**: `binary_sensor.inspire_<device_name>_connection`
+- **Connection Sensor**: `binary_sensor.inspire_home_automation_<device_name>_connection`
   - Shows if device is online
 
 ## Common Issues
@@ -95,5 +95,5 @@ After setup, for each thermostat you'll get:
 ## Need Help?
 
 - Check the full [README.md](README.md) for detailed documentation
-- Report issues at: https://github.com/paul-ridgway/ha-inspire-integration/issues
+- Report issues at: https://github.com/Smart-Home-Shop/ha-inspire-integration/issues
 - Inspire Support: https://www.inspirehomeautomation.co.uk/support

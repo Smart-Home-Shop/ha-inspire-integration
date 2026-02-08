@@ -6,5 +6,5 @@ services:
       - "8123:8123"
     volumes:
       - ./config:/config
-      - ./custom_components/inspire:/config/custom_components/inspire
+      - ./custom_components/inspire_home_automation:/config/custom_components/inspire_home_automation
     restart: unless-stopped

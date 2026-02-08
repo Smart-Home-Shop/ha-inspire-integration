@@ -6,7 +6,7 @@ alwaysApply: true
 # Project Structure
 
 ## HACS custom component layout
-Place the integration under `custom_components/inspire/` (or mirror this layout in the repo):
+Place the integration under `custom_components/inspire_home_automation/` (or mirror this layout in the repo):
 
 - **`__init__.py`** — Component setup, `async_setup_entry`, forward platform setups, store coordinator ref on hass.data.
 - **`manifest.json`** — Domain, name, version (required for HACS), documentation, issue_tracker, codeowners, iot_class, requirements.

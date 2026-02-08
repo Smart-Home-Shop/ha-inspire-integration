@@ -1,0 +1,11 @@
+{
+  "domain": "inspire_home_automation",
+  "name": "Inspire Home Automation",
+  "version": "0.1.0",
+  "config_flow": true,
+  "documentation": "https://github.com/Smart-Home-Shop/ha-inspire-integration",
+  "issue_tracker": "https://github.com/Smart-Home-Shop/ha-inspire-integration/issues",
+  "codeowners": ["@Smart-Home-Shop", "@paul-ridgway"],
+  "iot_class": "cloud_polling",
+  "requirements": ["aiohttp>=3.8.0", "defusedxml>=0.7.1"]
+}

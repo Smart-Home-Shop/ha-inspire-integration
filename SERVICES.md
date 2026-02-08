@@ -6,7 +6,7 @@ You need the **device_id** for each thermostat. Find it in **Settings → Device
 
 ---
 
-## inspire.schedule_heating_start
+## inspire_home_automation.schedule_heating_start
 
 Schedule the heating to start at a specific date/time.
 
@@ -18,7 +18,7 @@ Schedule the heating to start at a specific date/time.
 **Example:**
 
 ```yaml
-service: inspire.schedule_heating_start
+service: inspire_home_automation.schedule_heating_start
 data:
   device_id: "12345"
   datetime: "2025-02-09T07:00:00"
@@ -26,7 +26,7 @@ data:
 
 ---
 
-## inspire.cancel_scheduled_start
+## inspire_home_automation.cancel_scheduled_start
 
 Cancel a scheduled heating start.
 
@@ -37,14 +37,14 @@ Cancel a scheduled heating start.
 **Example:**
 
 ```yaml
-service: inspire.cancel_scheduled_start
+service: inspire_home_automation.cancel_scheduled_start
 data:
   device_id: "12345"
 ```
 
 ---
 
-## inspire.advance_program
+## inspire_home_automation.advance_program
 
 Advance the thermostat to the next program period (e.g. skip to the next time slot).
 
@@ -55,14 +55,14 @@ Advance the thermostat to the next program period (e.g. skip to the next time sl
 **Example:**
 
 ```yaml
-service: inspire.advance_program
+service: inspire_home_automation.advance_program
 data:
   device_id: "12345"
 ```
 
 ---
 
-## inspire.sync_device_time
+## inspire_home_automation.sync_device_time
 
 Synchronize the device clock with a time value you provide.
 
@@ -74,7 +74,7 @@ Synchronize the device clock with a time value you provide.
 **Example:**
 
 ```yaml
-service: inspire.sync_device_time
+service: inspire_home_automation.sync_device_time
 data:
   device_id: "12345"
   time: "14:30"
@@ -82,7 +82,7 @@ data:
 
 ---
 
-## inspire.set_program_schedule
+## inspire_home_automation.set_program_schedule
 
 Configure a single program schedule slot (program number, day, period, time, and set point temperature).
 
@@ -98,7 +98,7 @@ Configure a single program schedule slot (program number, day, period, time, and
 **Example:**
 
 ```yaml
-service: inspire.set_program_schedule
+service: inspire_home_automation.set_program_schedule
 data:
   device_id: "12345"
   program: 1
@@ -110,7 +110,7 @@ data:
 
 ---
 
-## inspire.set_program_type
+## inspire_home_automation.set_program_type
 
 Set the program type on the device. The exact values depend on the Inspire API; use the value or code expected by the API.
 
@@ -122,7 +122,7 @@ Set the program type on the device. The exact values depend on the Inspire API; 
 **Example:**
 
 ```yaml
-service: inspire.set_program_type
+service: inspire_home_automation.set_program_type
 data:
   device_id: "12345"
   program_type: "1"
@@ -148,7 +148,7 @@ condition:
       - thu
       - fri
 action:
-  - service: inspire.advance_program
+  - service: inspire_home_automation.advance_program
     data:
       device_id: "YOUR_DEVICE_ID"
 ```
@@ -161,7 +161,7 @@ trigger:
   - platform: time
     at: "03:00:00"
 action:
-  - service: inspire.sync_device_time
+  - service: inspire_home_automation.sync_device_time
     data:
       device_id: "YOUR_DEVICE_ID"
       time: "{{ now().strftime('%H:%M') }}"

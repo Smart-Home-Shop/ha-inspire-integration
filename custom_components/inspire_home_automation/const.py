@@ -1,6 +1,6 @@
 """Constants for the Inspire integration."""
 
-DOMAIN = "inspire"
+DOMAIN = "inspire_home_automation"
 
 # Configuration
 CONF_API_KEY = "api_key"
