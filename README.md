@@ -1,4 +1,4 @@
-# Inspire Home Automation Integration for Home Assistant
+# Inspire Home Automation Integration for Home Assistant, developed by SmartHomeShop UK
 
 A custom integration for Home Assistant to control Inspire Home Automation smart thermostats.
 
