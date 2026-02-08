@@ -7,8 +7,12 @@ A custom integration for Home Assistant to control Inspire Home Automation smart
 - Control Inspire thermostats from Home Assistant
 - Monitor current temperature and set points
 - Set target temperatures
-- Change heating modes (Off, Program, Manual, Boost)
+- Change heating modes (Off, Program 1, Program 2, Both, Manual, Boost)
+- Preset modes: none, program1, program2, both, boost
+- Connection status (binary sensor) and battery sensors
+- Account summary sensors
 - Real-time status updates via cloud polling
+- Home Assistant services for scheduling and program configuration (see [SERVICES.md](SERVICES.md))
 
 ## Prerequisites
 
@@ -78,25 +82,48 @@ This integration supports the following Inspire Home Automation devices:
 
 ## Entities Created
 
-For each thermostat, the integration creates:
+For each thermostat/device, the integration creates:
 
-- **Climate Entity**: Control temperature and mode
+- **Climate Entity**: Control temperature, HVAC mode, and preset (program1, program2, both, boost). Also shows current temperature (no separate temperature sensor for thermostats to avoid duplicates.)
   - `climate.inspire_<device_name>`
-- **Temperature Sensor**: Current temperature reading
-  - `sensor.inspire_<device_name>_temperature`
-- **Connection Sensor**: Device online status
-  - `binary_sensor.inspire_<device_name>_connection`
+- **Battery Sensor**: Battery status (OK/Low or voltage), when reported by the device
+  - `sensor.inspire_<device_name>_battery`
 
-## HVAC Modes
+At the account level:
 
-The integration maps Inspire functions to Home Assistant HVAC modes:
+- **Summary Sensors**: One sensor per scalar value returned by the API summary (e.g. device count, active count), under device "Inspire Account".
 
-| Inspire Mode | HA HVAC Mode |
-|--------------|--------------|
-| Off (Frost)  | Off          |
-| Program 1/2  | Auto         |
-| Manual/On    | Heat         |
-| Boost        | Heat (boost) |
+## Services
+
+The integration exposes services for scheduling and program configuration. See **[SERVICES.md](SERVICES.md)** for full descriptions and examples:
+
+- `inspire.schedule_heating_start` – Schedule heating to start at a given time
+- `inspire.cancel_scheduled_start` – Cancel a scheduled start
+- `inspire.advance_program` – Advance to the next program period
+- `inspire.sync_device_time` – Sync the device clock
+- `inspire.set_program_schedule` – Configure a program slot (program, day, period, time, temperature)
+- `inspire.set_program_type` – Set program type on the device
+
+Example (Developer Tools → Services):
+
+```yaml
+service: inspire.advance_program
+data:
+  device_id: "YOUR_DEVICE_ID"
+```
+
+## HVAC Modes and Presets
+
+The integration maps Inspire functions to Home Assistant:
+
+| Inspire Mode | HA HVAC Mode | Preset   |
+|--------------|--------------|----------|
+| Off          | Off          | none     |
+| Program 1    | Auto         | program1 |
+| Program 2    | Auto         | program2 |
+| Both         | Auto         | both     |
+| Manual/On    | Heat         | (none)   |
+| Boost        | Heat         | boost    |
 
 ## Troubleshooting
 

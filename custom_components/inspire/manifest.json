@@ -6,7 +6,5 @@
   "documentation": "https://github.com/paul-ridgway/ha-inspire-integration",
   "issue_tracker": "https://github.com/paul-ridgway/ha-inspire-integration/issues",
   "codeowners": ["@paul-ridgway"],
-  "requirements": ["aiohttp>=3.8.0"],
-  "dependencies": [],
   "iot_class": "cloud_polling"
 }

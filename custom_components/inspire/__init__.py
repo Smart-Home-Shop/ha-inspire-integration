@@ -9,6 +9,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .api import InspireAPIClient
 from .const import CONF_API_KEY, CONF_PASSWORD, CONF_USERNAME, DOMAIN
 from .coordinator import InspireDataUpdateCoordinator
+from .services import async_setup_services
 
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
@@ -35,6 +36,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
         "coordinator": coordinator,
         "client": client,
     }
+
+    async_setup_services(hass)
 
     await hass.config_entries.async_forward_entry_setups(
         config_entry, ["climate", "sensor"]

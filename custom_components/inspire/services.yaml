@@ -1,0 +1,103 @@
+# Inspire Home Automation services
+
+schedule_heating_start:
+  description: Schedule heating to start at a given date/time.
+  fields:
+    device_id:
+      description: Inspire device ID (e.g. from device registry).
+      required: true
+      selector:
+        text:
+    datetime:
+      description: Date/time for scheduled start (ISO format or as required by API).
+      required: true
+      selector:
+        text:
+
+cancel_scheduled_start:
+  description: Cancel a scheduled heating start.
+  fields:
+    device_id:
+      description: Inspire device ID.
+      required: true
+      selector:
+        text:
+
+advance_program:
+  description: Advance the thermostat to the next program period.
+  fields:
+    device_id:
+      description: Inspire device ID.
+      required: true
+      selector:
+        text:
+
+sync_device_time:
+  description: Synchronize the device clock with the provided time.
+  fields:
+    device_id:
+      description: Inspire device ID.
+      required: true
+      selector:
+        text:
+    time:
+      description: Time string (e.g. ISO or HH:MM) to set on the device.
+      required: true
+      selector:
+        text:
+
+set_program_schedule:
+  description: Configure a program schedule slot (program, day, period, time, temperature).
+  fields:
+    device_id:
+      description: Inspire device ID.
+      required: true
+      selector:
+        text:
+    program:
+      description: Program number (1 or 2).
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 2
+    day:
+      description: Day index (0-6, check API for exact mapping).
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 6
+    period:
+      description: Period index within the day.
+      required: true
+      selector:
+        number:
+          min: 0
+    time:
+      description: Time for the period (e.g. HH:MM).
+      required: true
+      selector:
+        text:
+    temperature:
+      description: Set point temperature in Celsius (10-30, 0.5 steps).
+      required: true
+      selector:
+        number:
+          min: 10
+          max: 30
+          step: 0.5
+
+set_program_type:
+  description: Set the program type on the device.
+  fields:
+    device_id:
+      description: Inspire device ID.
+      required: true
+      selector:
+        text:
+    program_type:
+      description: Program type value or code (as per API).
+      required: true
+      selector:
+        text:

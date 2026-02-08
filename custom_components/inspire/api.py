@@ -23,6 +23,7 @@ STATUS_SPECIFY_DEVICE_ID = 8
 STATUS_RATE_LIMIT = 11
 STATUS_UNIT_ACTIVE = 13
 STATUS_MESSAGE_SENT = 14
+STATUS_NO_LOG_DATA = 23
 
 
 class InspireAPIError(Exception):
@@ -112,7 +113,13 @@ class InspireAPIClient:
             InspireAPIError: On API errors
         """
         await self._enforce_rate_limit()
-        
+        action = (params or {}).get("action") or (data or {}).get("action")
+        device_id = (params or {}).get("device_id") or (data or {}).get("device_id")
+        desc = f"{method} action={action}"
+        if device_id:
+            desc += f" device_id={device_id}"
+        _LOGGER.debug("Request: %s", desc)
+
         session = await self._get_session()
         
         try:
@@ -162,10 +169,14 @@ class InspireAPIClient:
                         raise InspireDeviceError(f"Invalid device: {message}")
                     elif code == STATUS_RATE_LIMIT:
                         raise InspireRateLimitError(message)
+                    elif code == STATUS_NO_LOG_DATA:
+                        # No log data found - acceptable for get_log
+                        pass
                     elif code not in (STATUS_UNIT_ACTIVE, STATUS_MESSAGE_SENT):
                         # Unknown error code
                         _LOGGER.warning("Unknown API status code %d: %s", code, message)
                         
+            _LOGGER.debug("Request: %s -> success", desc)
             return root
             
         except aiohttp.ClientError as err:
@@ -315,6 +326,133 @@ class InspireAPIClient:
             
         return False
 
+    async def get_summary(self) -> dict[str, Any]:
+        """Get system summary/statistics.
+
+        Returns:
+            Summary dictionary (structure depends on API response).
+
+        Raises:
+            InspireAuthError: On authentication failure
+            InspireConnectionError: On connection failure
+        """
+        await self._ensure_connected()
+
+        params = {
+            "action": "get_summary",
+            "key": self._session_key,
+            "apikey": self._api_key,
+        }
+
+        try:
+            root = await self._request("GET", params=params)
+        except InspireAuthError:
+            await self.connect()
+            params["key"] = self._session_key
+            root = await self._request("GET", params=params)
+
+        summary: dict[str, Any] = {}
+        summary_elem = root.find(".//summary")
+        if summary_elem is not None:
+            for child in summary_elem:
+                if child.text is not None and child.text.strip():
+                    summary[child.tag] = child.text
+                elif len(child) > 0:
+                    summary[child.tag] = [
+                        {sub.tag: (sub.text or "") for sub in item}
+                        for item in child
+                    ]
+        return summary
+
+    async def check_confirms(self, device_id: str) -> list[dict[str, Any]]:
+        """Check message delivery confirmation status for a device.
+
+        Args:
+            device_id: Device ID
+
+        Returns:
+            List of confirmation records.
+
+        Raises:
+            InspireAuthError: On authentication failure
+            InspireDeviceError: On device errors
+            InspireConnectionError: On connection failure
+        """
+        await self._ensure_connected()
+
+        params = {
+            "action": "check_confirms",
+            "key": self._session_key,
+            "apikey": self._api_key,
+            "device_id": device_id,
+        }
+
+        try:
+            root = await self._request("GET", params=params)
+        except InspireAuthError:
+            await self.connect()
+            params["key"] = self._session_key
+            root = await self._request("GET", params=params)
+
+        confirms: list[dict[str, Any]] = []
+        confirms_elem = root.find(".//confirms")
+        if confirms_elem is not None:
+            for item in confirms_elem.findall("confirm") or confirms_elem:
+                rec = {}
+                for child in item:
+                    if child.text is not None:
+                        rec[child.tag] = child.text
+                if rec:
+                    confirms.append(rec)
+        return confirms
+
+    async def get_log(self, device_id: str) -> list[dict[str, Any]]:
+        """Retrieve device logs/diagnostics.
+
+        Args:
+            device_id: Device ID
+
+        Returns:
+            List of log entries.
+
+        Raises:
+            InspireAuthError: On authentication failure
+            InspireDeviceError: On device errors
+            InspireConnectionError: On connection failure
+        """
+        await self._ensure_connected()
+
+        params = {
+            "action": "get_log",
+            "key": self._session_key,
+            "apikey": self._api_key,
+            "device_id": device_id,
+        }
+
+        try:
+            root = await self._request("GET", params=params)
+        except InspireAuthError:
+            await self.connect()
+            params["key"] = self._session_key
+            root = await self._request("GET", params=params)
+
+        status_elem = root.find(".//status/code")
+        if status_elem is not None and status_elem.text and int(status_elem.text) == STATUS_NO_LOG_DATA:
+            return []
+
+        log_entries: list[dict[str, Any]] = []
+        log_elem = root.find(".//log") or root.find(".//Log")
+        if log_elem is not None:
+            for item in log_elem.findall("entry") or log_elem.findall("item") or list(log_elem):
+                if item.tag in ("entry", "item") or item.text or len(item) > 0:
+                    rec = {}
+                    for child in item:
+                        if child.text is not None:
+                            rec[child.tag] = child.text
+                    if rec:
+                        log_entries.append(rec)
+        return log_entries
+
     async def set_temperature(self, device_id: str, temperature: float) -> None:
         """Set target temperature for device.
         
@@ -377,7 +515,7 @@ class InspireAPIClient:
             "message_type": "set_function",
             "value": str(function),
         }
-        
+
         try:
             await self._request("POST", data=data)
         except InspireAuthError:
@@ -385,3 +523,127 @@ class InspireAPIClient:
             await self.connect()
             data["key"] = self._session_key
             await self._request("POST", data=data)
+
+    def _send_message(
+        self, device_id: str, message_type: str, value: str | None = None, **extra: Any
+    ) -> dict[str, Any]:
+        """Build send_message payload (caller uses _request)."""
+        data: dict[str, Any] = {
+            "action": "send_message",
+            "key": self._session_key,
+            "apikey": self._api_key,
+            "device_id": device_id,
+            "message_type": message_type,
+        }
+        if value is not None:
+            data["value"] = value
+        data.update(extra)
+        return data
+
+    async def _post_message(
+        self, device_id: str, message_type: str, value: str | None = None, **extra: Any
+    ) -> None:
+        """Send a message and handle auth reconnect."""
+        await self._ensure_connected()
+        data = self._send_message(device_id, message_type, value=value, **extra)
+        try:
+            await self._request("POST", data=data)
+        except InspireAuthError:
+            await self.connect()
+            data["key"] = self._session_key
+            await self._request("POST", data=data)
+
+    async def set_time(self, device_id: str, time_str: str) -> None:
+        """Synchronize device clock.
+
+        Args:
+            device_id: Device ID
+            time_str: Time value (format as required by API, e.g. ISO or HH:MM)
+
+        Raises:
+            InspireAuthError: On authentication failure
+            InspireConnectionError: On connection failure
+        """
+        await self._post_message(device_id, "set_time", value=time_str)
+
+    async def set_program_time(
+        self,
+        device_id: str,
+        program: int,
+        day: int,
+        period: int,
+        time_str: str,
+        temperature: float,
+    ) -> None:
+        """Configure a program schedule slot.
+
+        Args:
+            device_id: Device ID
+            program: Program number (1 or 2)
+            day: Day index (0-6 or as per API)
+            period: Period index within the day
+            time_str: Time for the period (e.g. HH:MM)
+            temperature: Set point for the period (10-30°C, 0.5 steps)
+
+        Raises:
+            ValueError: If temperature is out of range
+            InspireAuthError: On authentication failure
+            InspireConnectionError: On connection failure
+        """
+        if not 10.0 <= temperature <= 30.0:
+            raise ValueError("Temperature must be between 10 and 30°C")
+        temperature = round(temperature * 2) / 2
+        value = f"{program},{day},{period},{time_str},{temperature}"
+        await self._post_message(device_id, "set_program_time", value=value)
+
+    async def set_scheduled_start(self, device_id: str, datetime_str: str) -> None:
+        """Schedule heating start time.
+
+        Args:
+            device_id: Device ID
+            datetime_str: Date/time for scheduled start (format as per API)
+
+        Raises:
+            InspireAuthError: On authentication failure
+            InspireConnectionError: On connection failure
+        """
+        await self._post_message(device_id, "set_scheduled_start", value=datetime_str)
+
+    async def cancel_scheduled_start(self, device_id: str) -> None:
+        """Cancel scheduled heating start.
+
+        Args:
+            device_id: Device ID
+
+        Raises:
+            InspireAuthError: On authentication failure
+            InspireConnectionError: On connection failure
+        """
+        await self._post_message(device_id, "cancel_scheduled_start")
+
+    async def set_pgmtype(self, device_id: str, program_type: str | int) -> None:
+        """Set program type.
+
+        Args:
+            device_id: Device ID
+            program_type: Program type (value or code as per API)
+
+        Raises:
+            InspireAuthError: On authentication failure
+            InspireConnectionError: On connection failure
+        """
+        await self._post_message(
+            device_id, "set_pgmtype", value=str(program_type)
+        )
+
+    async def set_advance(self, device_id: str) -> None:
+        """Advance to next program period.
+
+        Args:
+            device_id: Device ID
+
+        Raises:
+            InspireAuthError: On authentication failure
+            InspireConnectionError: On connection failure
+        """
+        await self._post_message(device_id, "set_advance")

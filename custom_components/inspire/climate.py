@@ -84,7 +84,7 @@ class InspireClimateEntity(CoordinatorEntity[InspireDataUpdateCoordinator], Clim
         ClimateEntityFeature.TARGET_TEMPERATURE
         | ClimateEntityFeature.PRESET_MODE
     )
-    _attr_preset_modes = ["none", "boost"]
+    _attr_preset_modes = ["none", "program1", "program2", "both", "boost"]
 
     def __init__(
         self,
@@ -150,14 +150,28 @@ class InspireClimateEntity(CoordinatorEntity[InspireDataUpdateCoordinator], Clim
             return HVACMode.AUTO
         return HVACMode.HEAT
 
+    def _function_to_preset(self, func: int) -> str:
+        """Map API function value to preset mode string."""
+        if func == FUNCTION_OFF:
+            return "none"
+        if func == FUNCTION_PROGRAM_1:
+            return "program1"
+        if func == FUNCTION_PROGRAM_2:
+            return "program2"
+        if func == FUNCTION_BOTH_PROGRAMS:
+            return "both"
+        if func == FUNCTION_BOOST:
+            return "boost"
+        return "none"
+
     @property
     def preset_mode(self) -> str | None:
-        """Return preset mode (boost or none)."""
+        """Return current preset mode."""
         dev = self._device
         if not dev:
             return None
         func = _current_function_to_value(dev.get("Current_Function"))
-        return "boost" if func == FUNCTION_BOOST else "none"
+        return self._function_to_preset(func)
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set target temperature."""
@@ -180,11 +194,16 @@ class InspireClimateEntity(CoordinatorEntity[InspireDataUpdateCoordinator], Clim
         await self.coordinator.async_request_refresh()
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
-        """Set preset mode (boost or none)."""
-        if preset_mode == "boost":
-            await self.coordinator.client.set_function(self._device_id, FUNCTION_BOOST)
-        elif preset_mode == "none":
-            await self.coordinator.client.set_function(self._device_id, FUNCTION_PROGRAM_1)
+        """Set preset mode (none, program1, program2, both, boost)."""
+        preset_to_function = {
+            "none": FUNCTION_OFF,
+            "program1": FUNCTION_PROGRAM_1,
+            "program2": FUNCTION_PROGRAM_2,
+            "both": FUNCTION_BOTH_PROGRAMS,
+            "boost": FUNCTION_BOOST,
+        }
+        func = preset_to_function.get(preset_mode, FUNCTION_PROGRAM_1)
+        await self.coordinator.client.set_function(self._device_id, func)
         await self.coordinator.async_request_refresh()
 
 

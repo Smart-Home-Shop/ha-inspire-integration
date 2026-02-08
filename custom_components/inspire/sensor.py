@@ -93,6 +93,8 @@ class InspireBatterySensor(
     """Battery status sensor for an Inspire device (API returns 'OK' / 'Low' or voltage, not %)."""
 
     _attr_has_entity_name = True
+    # Do not set device_class=BATTERY: API returns 'OK'/'Low' or voltage string, not percentage
+    _attr_device_class = None
 
     def __init__(
         self,
@@ -139,6 +141,52 @@ class InspireBatterySensor(
         return None
 
 
+class InspireSummarySensor(
+    CoordinatorEntity[InspireDataUpdateCoordinator], SensorEntity
+):
+    """Sensor for a single Inspire account summary metric."""
+
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        coordinator: InspireDataUpdateCoordinator,
+        key: str,
+        name: str,
+        entry_id: str,
+    ) -> None:
+        """Initialize the summary sensor."""
+        super().__init__(coordinator)
+        self._key = key
+        self._entry_id = entry_id
+        self._attr_unique_id = f"{entry_id}-summary-{key}"
+        self._attr_name = name
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, f"account_{entry_id}")},
+            "name": "Inspire Account",
+            "manufacturer": "Inspire Home Automation",
+        }
+
+    @property
+    def native_value(self) -> str | int | float | None:
+        """Return summary value for the key."""
+        summary = getattr(self.coordinator, "_summary", None) or {}
+        val = summary.get(self._key)
+        if val is None:
+            return None
+        if isinstance(val, list):
+            return len(val)
+        try:
+            return int(val)
+        except (TypeError, ValueError):
+            pass
+        try:
+            return float(val)
+        except (TypeError, ValueError):
+            pass
+        return str(val)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -153,12 +201,15 @@ async def async_setup_entry(
         return
 
     entities: list[SensorEntity] = []
+    entry_id = config_entry.entry_id
+
     for device in coordinator.data:
         device_id = device.get("device_id") or device.get("id")
         if not device_id:
             continue
         name = device.get("name") or f"Device {device_id}"
-        if _is_thermostat(device):
+        # No separate temperature sensor for thermostats; climate entity already exposes current_temperature
+        if not _is_thermostat(device) and device.get("Current_Temperature") is not None:
             entities.append(
                 InspireTemperatureSensor(coordinator, device_id, name, device)
             )
@@ -166,5 +217,16 @@ async def async_setup_entry(
             entities.append(
                 InspireBatterySensor(coordinator, device_id, name, device)
             )
+
+    summary = getattr(coordinator, "_summary", None) or {}
+    for key in summary:
+        if isinstance(summary[key], (list, dict)):
+            continue
+        display_name = key.replace("_", " ").title()
+        entities.append(
+            InspireSummarySensor(
+                coordinator, key, display_name, entry_id
+            )
+        )
 
     async_add_entities(entities)

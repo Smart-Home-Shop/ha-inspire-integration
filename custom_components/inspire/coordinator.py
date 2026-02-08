@@ -1,6 +1,7 @@
 """DataUpdateCoordinator for the Inspire integration."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import timedelta
 from typing import Any
@@ -10,7 +11,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .api import InspireAPIClient, InspireAuthError, InspireConnectionError
+from .api import (
+    InspireAPIClient,
+    InspireAuthError,
+    InspireConnectionError,
+    InspireDeviceError,
+)
 from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,12 +41,15 @@ class InspireDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
         self.client = client
         self.config_entry = config_entry
         self._device_list: list[dict[str, Any]] = []
+        self._summary: dict[str, Any] = {}
 
     async def _async_update_data(self) -> list[dict[str, Any]]:
         """Fetch devices and their info from the API."""
+        _LOGGER.debug("Refresh started")
         try:
             if not self._device_list:
                 self._device_list = await self.client.get_devices()
+                _LOGGER.debug("Fetched %d devices", len(self._device_list))
                 if not self._device_list:
                     return []
         except InspireAuthError:
@@ -61,6 +70,8 @@ class InspireDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
                 result.append(merged)
             except InspireAuthError:
                 raise config_entries.ConfigEntryAuthFailed from None
+            except asyncio.CancelledError:
+                raise
             except (InspireConnectionError, Exception) as err:
                 _LOGGER.warning(
                     "Failed to get info for device %s: %s",
@@ -70,4 +81,19 @@ class InspireDataUpdateCoordinator(DataUpdateCoordinator[list[dict[str, Any]]]):
                 merged = {**device, "device_id": device_id}
                 result.append(merged)
 
+        _LOGGER.debug("Fetched info for %d devices", len(result))
+        try:
+            self._summary = await self.client.get_summary()
+            _LOGGER.debug("Summary: %d keys", len(self._summary))
+        except asyncio.CancelledError:
+            self._summary = {}
+            # Don't re-raise: allow setup to complete with device data
+        except InspireDeviceError:
+            # API sometimes returns "Invalid Device ID" for get_summary; treat as no summary
+            self._summary = {}
+        except Exception as err:
+            _LOGGER.debug("Failed to fetch summary: %s", err)
+            self._summary = {}
+
+        _LOGGER.info("Refresh complete: %d devices", len(result))
         return result
