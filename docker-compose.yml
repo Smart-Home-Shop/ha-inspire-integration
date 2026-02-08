@@ -1,0 +1,10 @@
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: inspire-ha
+    ports:
+      - "8123:8123"
+    volumes:
+      - ./config:/config
+      - ./custom_components/inspire:/config/custom_components/inspire
+    restart: unless-stopped
